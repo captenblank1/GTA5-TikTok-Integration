@@ -85,11 +85,18 @@ public class GTAVWebhookScript : Script
 
     private void OnKeyDown(object sender, KeyEventArgs e)
     {
+        if (e.KeyCode == Keys.H)
+        {
+            // إنشاء مركبة Shotaro على بعد 15 وحدة أمام اللاعب
+            Vector3 spawnPosition = Game.Player.Character.Position + Game.Player.Character.ForwardVector * 15f;
+            Vehicle shotaro = World.CreateVehicle(new Model(VehicleHash.Shotaro), spawnPosition);
+            spawnedVehicles.Add(shotaro);
+            Logger.Log("Shotaro spawned 15 units ahead of player.");
+        }
     }
 
     private void OnKeyUp(object sender, KeyEventArgs e)
     {
-
     }
 
     private void ProcessCommand(CommandInfo command)
