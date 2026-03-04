@@ -1,0 +1,2176 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.5, user-scalable=yes"
+    />
+    <title>Black Moon - Multi‑User Webhook System</title>
+    <!-- Google Fonts -->
+    <link
+      href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <!-- Font Awesome -->
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css"
+    />
+    <!-- Content Security Policy (محدثة لتشمل نطاقات TikTok) -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; connect-src 'self' https://gta5-tiktok-integration-production.up.railway.app wss://gta5-tiktok-integration-production.up.railway.app; img-src 'self' data: https://ui-avatars.com https://p16-webcast.tiktokcdn.com https://*.tiktokcdn.com;"
+    />
+    <link rel="stylesheet" href="Css/style.css" />
+  </head>
+  <body>
+    <!-- ========== شاشة المصادقة ========== -->
+    <div id="authOverlay" class="auth-overlay">
+      <div class="auth-container">
+        <h2>⚫ Black Moon</h2>
+        <div id="authMessage" class="auth-error"></div>
+        <div id="authSuccess" class="auth-success"></div>
+
+        <!-- نموذج تسجيل الدخول -->
+        <div id="loginForm">
+          <input
+            type="text"
+            id="loginUsername"
+            placeholder="Username"
+            autocomplete="username"
+          />
+          <input
+            type="password"
+            id="loginPassword"
+            placeholder="Password"
+            autocomplete="current-password"
+          />
+          <button onclick="handleLogin()">Log In</button>
+          <div class="auth-link">
+            Don't have an account? <span onclick="showRegister()">Sign up</span
+            ><br />
+            <span
+              style="font-size: 14px; margin-top: 10px; display: block"
+              onclick="showForgot()"
+              >Forgot password?</span
+            >
+          </div>
+        </div>
+
+        <!-- نموذج التسجيل -->
+        <div id="registerForm" style="display: none">
+          <input
+            type="text"
+            id="regUsername"
+            placeholder="Username"
+            autocomplete="off"
+          />
+          <input
+            type="password"
+            id="regPassword"
+            placeholder="Password"
+            autocomplete="new-password"
+          />
+          <input
+            type="password"
+            id="regConfirm"
+            placeholder="Confirm password"
+            autocomplete="new-password"
+          />
+          <button onclick="handleRegister()">Sign Up</button>
+          <div class="auth-link">
+            Already have an account? <span onclick="showLogin()">Log in</span>
+          </div>
+        </div>
+
+        <!-- نموذج نسيت كلمة المرور (تجريبي) -->
+        <div id="forgotForm" style="display: none">
+          <p style="color: #aaa; margin-bottom: 20px">
+            Enter your username to reset password. (Demo)
+          </p>
+          <input type="text" id="forgotUsername" placeholder="Username" />
+          <button onclick="handleForgot()">Reset Password</button>
+          <div class="auth-link">
+            <span onclick="showLogin()">Back to login</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========== التطبيق الرئيسي (يظهر بعد تسجيل الدخول) ========== -->
+    <div id="mainApp">
+      <!-- ====== Start Sidebar ====== -->
+      <aside>
+        <div class="logo">
+          <h1>Black Moon</h1>
+          <small
+            style="
+              display: block;
+              font-size: 12px;
+              color: #888;
+              margin-top: 5px;
+            "
+            >Multi‑User System</small
+          >
+        </div>
+
+        <div class="connected-profile">
+          <img
+            id="liveOwnerImg2"
+            src="https://ui-avatars.com/api/?name=User&background=4caf50&color=fff&size=100"
+            alt="profile"
+          />
+          <div class="text">
+            <h2 id="tiktok-display">Not Connected</h2>
+            <p id="connect-text">Disconnected</p>
+          </div>
+        </div>
+
+        <div class="start"><p>Getting Started</p></div>
+        <div class="action"><p>Actions</p></div>
+
+        <!-- أزرار إضافية: شاشات OBS وتسجيل الخروج فقط (تم نقل رفع الفيديو إلى الكارد) -->
+        <div style="margin-top: 30px; padding: 0 20px">
+          <button
+            class="quick-action-btn"
+            style="width: 100%; margin-bottom: 10px"
+            onclick="window.open('/screens', '_blank')"
+          >
+            <i class="fas fa-tv"></i> My OBS Screens
+          </button>
+          <button
+            class="quick-action-btn secondary"
+            style="width: 100%"
+            onclick="handleLogout()"
+          >
+            <i class="fas fa-sign-out-alt"></i> Logout
+          </button>
+        </div>
+      </aside>
+      <!-- ====== End Sidebar ====== -->
+
+      <!-- ====== Start Main Content ====== -->
+      <div class="start-section-2">
+        <!-- Account Profile Section -->
+        <div class="account">
+          <img
+            id="liveOwnerImg1"
+            src="https://ui-avatars.com/api/?name=User&background=4caf50&color=fff&size=100"
+            alt="profile"
+          />
+          <p>Black Moon Webhook System</p>
+          <div class="text">
+            <p>Your TikTok Username <span>(Required!)</span></p>
+            <input
+              id="user-tiktok"
+              type="text"
+              placeholder="@username"
+              value=""
+            />
+          </div>
+          <button type="button" id="send-usertik">
+            Connect to TikTok LIVE
+          </button>
+          <p id="result"></p>
+
+          <!-- Webhook Status Card -->
+          <div class="webhook-info">
+            <h4>🌐 Webhook System Status</h4>
+            <div>✅ Pure Webhook System - No Commands</div>
+            <div>✅ All interactions trigger webhooks</div>
+            <div>✅ No Minecraft/RCON required</div>
+            <div>✅ Multiple webhooks per action</div>
+            <div>✅ Real-time testing available</div>
+            <div>✅ Support for Discord, Telegram, Slack</div>
+          </div>
+        </div>
+
+        <!-- ====== Tabs Navigation ====== -->
+        <div class="tab-container">
+          <button
+            class="tab-button active"
+            onclick="switchTab('webhooks', this)"
+          >
+            🌐 Webhooks
+          </button>
+          <button class="tab-button" onclick="switchTab('test', this)">
+            🧪 Test Webhooks
+          </button>
+          <button class="tab-button" onclick="switchTab('settings', this)">
+            ⚙️ Settings
+          </button>
+        </div>
+
+        <!-- ====== Quick Actions Bar ====== -->
+        <div class="quick-actions">
+          <button class="quick-action-btn" onclick="showAddCard()">
+            <i class="fas fa-plus-circle"></i> Create Webhook Action
+          </button>
+          <button
+            class="quick-action-btn secondary"
+            onclick="testAllWebhooks()"
+          >
+            <i class="fas fa-globe"></i> Test All
+          </button>
+          <button
+            class="quick-action-btn secondary"
+            onclick="refreshCommands()"
+          >
+            <i class="fas fa-sync-alt"></i> Refresh
+          </button>
+
+          <!-- Profile Selector -->
+          <div id="select-profile" class="profile-select">
+            <div class="selected" tabindex="0">
+              <span class="label">Profile:</span>
+              <span id="current-profile-label">1</span>
+            </div>
+            <ul class="options" id="profile-options"></ul>
+          </div>
+        </div>
+
+        <!-- ====== Message Container ====== -->
+        <div id="message"></div>
+
+        <!-- ====== Tab 1: Webhooks ====== -->
+        <div id="tab-webhooks" class="tab-content active">
+          <!-- Add/Edit Webhook Action Card -->
+          <div class="card" id="addCard" style="display: none">
+            <h3>
+              <i class="fas fa-plus-circle" style="color: #4caf50"></i> Create
+              New Webhook Action
+            </h3>
+            <label>Action Name</label>
+            <input
+              type="text"
+              id="actionName"
+              placeholder="e.g., Welcome Gift"
+              required
+            />
+            <label>Action Type</label>
+            <select id="actionType" onchange="updateInputsForType(this.value)">
+              <option value="gift">🎁 Gift</option>
+              <option value="follow">👤 Follow</option>
+              <option value="like">❤️ Like</option>
+              <option value="comment">💬 Comment</option>
+              <option value="share">🔄 Share</option>
+            </select>
+            <!-- Gift Selection -->
+            <div id="giftChooserSection">
+              <label>Select Gift</label>
+              <div id="giftDropdown" class="gift-dropdown">
+                <div class="selected">Choose a gift...</div>
+                <div class="options"></div>
+              </div>
+              <input type="hidden" id="giftSelect" />
+              <input type="hidden" id="giftName" />
+            </div>
+            <!-- Keyword (for comments) -->
+            <div id="keywordSection" style="display: none">
+              <label>Keyword (for comments only)</label>
+              <input
+                type="text"
+                id="keyword"
+                placeholder="Leave empty for all comments"
+              />
+            </div>
+            <!-- Threshold (for likes) -->
+            <div id="thresholdSection" style="display: none">
+              <label>Likes Threshold</label>
+              <input type="number" id="threshold" placeholder="0" value="0" />
+            </div>
+            <label>Target User</label>
+            <input
+              type="text"
+              id="targetUser"
+              placeholder="all or username"
+              value="all"
+            />
+            <!-- Webhook URL Only -->
+            <div
+              style="
+                background: #1e3a2e;
+                padding: 15px;
+                border-radius: 6px;
+                margin: 15px 0;
+              "
+            >
+              <label style="color: #b9f6ca; font-weight: bold"
+                >🌐 Webhook URL (Required)</label
+              >
+              <input
+                class="inp-wephook"
+                type="url"
+                id="webhookUrl"
+                placeholder="https://your-server.com/webhook"
+                style="border: 2px solid #4caf50"
+              />
+            </div>
+            <label>Repeat Count</label>
+            <input
+              type="number"
+              id="repeat"
+              placeholder="1"
+              value="1"
+              min="1"
+            />
+            <label>Interval (ms)</label>
+            <input
+              type="number"
+              id="interval"
+              placeholder="100"
+              value="100"
+              min="0"
+            />
+            <label>Delay Before (ms)</label>
+            <input
+              type="number"
+              id="delayBefore"
+              placeholder="0"
+              value="0"
+              min="0"
+            />
+            <div style="margin: 15px 0">
+              <input type="checkbox" id="oncePerLive" />
+              <label for="oncePerLive" style="display: inline; margin-left: 8px"
+                >Once per live stream</label
+              >
+            </div>
+            <h4>Audio Settings</h4>
+            <div id="audioDropdown" class="gift-dropdown">
+              <div class="selected">Choose audio...</div>
+              <div style="overflow: hidden" class="options"></div>
+            </div>
+            <input type="hidden" id="audioSelect" />
+            <label>Volume: <span id="volumeValue">100</span>%</label>
+            <input
+              type="range"
+              id="volume"
+              min="0"
+              max="100"
+              step="1"
+              value="100"
+              oninput="
+                document.getElementById('volumeValue').textContent = this.value
+              "
+            />
+
+            <!-- قسم رفع الفيديو (موضوع داخل الكارد تحت الصوت) -->
+            <h4 style="margin-top: 20px">🎬 Video Settings</h4>
+            <div style="background: #1e2a3a; padding: 15px; border-radius: 6px">
+              <p style="color: #ccc; margin-bottom: 10px">
+                Upload a video to be played when this webhook triggers
+                (optional)
+              </p>
+              <button
+                type="button"
+                class="quick-action-btn secondary"
+                onclick="uploadVideoForCurrentCard()"
+              >
+                <i class="fas fa-video"></i> Upload Video
+              </button>
+              <div
+                id="videoStatus"
+                style="margin-top: 10px; font-size: 13px; color: #4caf50"
+              ></div>
+              <input type="hidden" id="videoFilename" value="" />
+              <p style="color: #aaa; font-size: 12px; margin-top: 8px">
+                بعد الرفع، سيتم ربط الفيديو بهذه الهدية (إذا تم اختيار هدية)
+                وسيتم تشغيله على الشاشة المحددة.
+              </p>
+            </div>
+
+            <label style="margin-top: 15px">Screen Number</label>
+            <input
+              type="number"
+              id="screen"
+              placeholder="1"
+              value="1"
+              min="1"
+            />
+            <div class="actions">
+              <button class="confirm-btn" onclick="confirmAdd(event)">
+                <i class="fas fa-save"></i> Save Webhook Action
+              </button>
+              <button class="cancel-btn" onclick="hideAddCard()">
+                <i class="fas fa-times"></i> Cancel
+              </button>
+            </div>
+          </div>
+
+          <!-- Webhooks Table -->
+          <table>
+            <thead>
+              <tr>
+                <th>Active</th>
+                <th>Actions</th>
+                <th>Name</th>
+                <th>Webhook URL</th>
+                <th>Screen</th>
+                <th>Repeat</th>
+                <th>Interval</th>
+                <th>Delay</th>
+                <th>Sound</th>
+                <th>Volume</th>
+                <th>Gift</th>
+              </tr>
+            </thead>
+            <tbody id="commandsTable">
+              <tr>
+                <td
+                  colspan="11"
+                  style="text-align: center; padding: 40px; color: #888"
+                >
+                  <i class="fas fa-spinner fa-spin"></i> Loading webhook
+                  actions...
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ====== Tab 2: Test Webhooks ====== -->
+        <div id="tab-test" class="tab-content">
+          <div class="card">
+            <h3>
+              <i class="fas fa-vial" style="color: #2196f3"></i> Webhook Tester
+            </h3>
+            <p style="color: #aaa; margin-bottom: 20px">
+              Test your webhook URLs by sending sample POST data.
+            </p>
+            <label>Webhook URL:</label>
+            <input
+              type="url"
+              id="testWebhookUrl"
+              placeholder="https://your-server.com/webhook"
+            />
+            <label>Test Payload (JSON):</label>
+            <textarea id="testPayload" rows="8" style="font-family: monospace">
+{\n  "test": true,\n  "timestamp": "2024-01-01T00:00:00.000Z",\n  "message": "Test webhook from Black Moon",\n  "user": "TestUser",\n  "type": "test",\n  "source": "blackmoon_tester",\n  "profile": 1\n}</textarea
+            >
+            <div style="display: flex; gap: 10px; margin-top: 20px">
+              <button class="quick-action-btn" onclick="sendTestWebhook()">
+                <i class="fas fa-paper-plane"></i> Send Test
+              </button>
+              <button
+                class="quick-action-btn secondary"
+                onclick="resetTestForm()"
+              >
+                <i class="fas fa-undo"></i> Reset
+              </button>
+            </div>
+            <div id="testResults" class="test-results">
+              Test results will appear here...
+            </div>
+          </div>
+          <div style="margin-top: 20px">
+            <h4 style="color: #ddd; margin-bottom: 15px">
+              Quick Test Templates:
+            </h4>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap">
+              <button
+                class="quick-action-btn secondary"
+                onclick="setDiscordTemplate()"
+              >
+                <i class="fab fa-discord"></i> Discord
+              </button>
+              <button
+                class="quick-action-btn secondary"
+                onclick="setTelegramTemplate()"
+              >
+                <i class="fab fa-telegram"></i> Telegram
+              </button>
+              <button
+                class="quick-action-btn secondary"
+                onclick="setSlackTemplate()"
+              >
+                <i class="fab fa-slack"></i> Slack
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== Tab 3: Settings ====== -->
+        <div id="tab-settings" class="tab-content">
+          <div class="card">
+            <h3>
+              <i class="fas fa-cog" style="color: #2196f3"></i> System Settings
+            </h3>
+            <div style="margin: 20px 0">
+              <h4>API Status</h4>
+              <div
+                id="apiStatus"
+                style="padding: 15px; background: #1e1e1e; border-radius: 6px"
+              >
+                Checking server status...
+              </div>
+            </div>
+            <div style="margin: 20px 0">
+              <h4>Danger Zone</h4>
+              <button
+                class="quick-action-btn"
+                onclick="openDeleteModal()"
+                style="background: #f44336"
+              >
+                <i class="fas fa-trash"></i> Delete All Webhooks
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ====== Delete Confirmation Modal ====== -->
+        <div class="modal" id="deleteModal">
+          <div class="modal-content">
+            <h3 style="color: #f44336; margin-bottom: 20px">
+              ⚠️ Confirm Delete
+            </h3>
+            <p style="margin-bottom: 20px">
+              Are you sure you want to delete ALL webhook actions?
+            </p>
+            <div style="display: flex; gap: 10px">
+              <button
+                class="quick-action-btn"
+                onclick="deleteAll()"
+                style="background: #f44336"
+              >
+                Yes, Delete All
+              </button>
+              <button class="quick-action-btn secondary" onclick="closeModal()">
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- ====== End Main Content ====== -->
+    </div>
+    <script>
+      // ========== صورة افتراضية محلية (Data URI) ==========
+      const PLACEHOLDER_IMAGE =
+        "data:image/svg+xml,%3Csvg%20xmlns='http://www.w3.org/2000/svg'%20width='35'%20height='35'%20viewBox='0%200%2035%2035'%3E%3Crect%20width='35'%20height='35'%20fill='%234caf50'/%3E%3Ctext%20x='50%25'%20y='50%25'%20font-size='12'%20fill='%23ffffff'%20text-anchor='middle'%20dy='.3em'%3EGift%3C/text%3E%3C/svg%3E";
+
+      // ========== التهيئة والمتغيرات العامة ==========
+      // التعديل ده عشان الكود يعرف يكلم السيرفر الجديد
+      const SERVER_URL =
+        "https://gta5-tiktok-integration-production.up.railway.app";
+      const API_BASE = `${SERVER_URL}/api`;
+      let currentUser = null;
+
+      // ========== دوال المصادقة ==========
+      function showLogin() {
+        document.getElementById("loginForm").style.display = "block";
+        document.getElementById("registerForm").style.display = "none";
+        document.getElementById("forgotForm").style.display = "none";
+        clearAuthMessages();
+      }
+      function showRegister() {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("registerForm").style.display = "block";
+        document.getElementById("forgotForm").style.display = "none";
+        clearAuthMessages();
+      }
+      function showForgot() {
+        document.getElementById("loginForm").style.display = "none";
+        document.getElementById("registerForm").style.display = "none";
+        document.getElementById("forgotForm").style.display = "block";
+        clearAuthMessages();
+      }
+      function clearAuthMessages() {
+        document.getElementById("authMessage").style.display = "none";
+        document.getElementById("authSuccess").style.display = "none";
+      }
+      function showAuthError(msg) {
+        const el = document.getElementById("authMessage");
+        el.textContent = msg;
+        el.style.display = "block";
+        document.getElementById("authSuccess").style.display = "none";
+      }
+      function showAuthSuccess(msg) {
+        const el = document.getElementById("authSuccess");
+        el.textContent = msg;
+        el.style.display = "block";
+        document.getElementById("authMessage").style.display = "none";
+      }
+
+      // ========== طلبات المصادقة ==========
+      async function handleLogin() {
+        const username = document.getElementById("loginUsername").value.trim();
+        const password = document.getElementById("loginPassword").value.trim();
+        if (!username || !password)
+          return showAuthError("Username and password required");
+
+        try {
+          const res = await fetch(`${API_BASE}/login`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (data.success) {
+            showAuthSuccess("Login successful! Loading...");
+            currentUser = data.user;
+            setTimeout(() => {
+              document.getElementById("authOverlay").style.display = "none";
+              document.getElementById("mainApp").style.display = "block";
+              initializeApp();
+            }, 1000);
+          } else {
+            showAuthError(data.message || "Login failed");
+          }
+        } catch (err) {
+          showAuthError("Network error: " + err.message);
+        }
+      }
+
+      async function handleRegister() {
+        const username = document.getElementById("regUsername").value.trim();
+        const password = document.getElementById("regPassword").value.trim();
+        const confirm = document.getElementById("regConfirm").value.trim();
+        if (!username || !password)
+          return showAuthError("Username and password required");
+        if (password !== confirm)
+          return showAuthError("Passwords do not match");
+
+        try {
+          const res = await fetch(`${API_BASE}/register`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username, password }),
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (data.success) {
+            showAuthSuccess("Registration successful! Logging in...");
+            currentUser = data.user;
+            setTimeout(() => {
+              document.getElementById("authOverlay").style.display = "none";
+              document.getElementById("mainApp").style.display = "block";
+              initializeApp();
+            }, 1000);
+          } else {
+            showAuthError(data.message || "Registration failed");
+          }
+        } catch (err) {
+          showAuthError("Network error: " + err.message);
+        }
+      }
+
+      function handleForgot() {
+        const username = document.getElementById("forgotUsername").value.trim();
+        if (!username) return showAuthError("Username required");
+        alert(
+          `Demo: reset password for ${username}. In real app, you would receive an email.`,
+        );
+        showLogin();
+      }
+
+      async function handleLogout() {
+        try {
+          await fetch(`${API_BASE}/logout`, {
+            method: "POST",
+            credentials: "include",
+          });
+        } catch (e) {}
+        document.getElementById("mainApp").style.display = "none";
+        document.getElementById("authOverlay").style.display = "flex";
+        showLogin();
+        currentUser = null;
+      }
+
+      // ========== تهيئة التطبيق الرئيسي ==========
+      async function initializeApp() {
+        try {
+          const res = await fetch(`${API_BASE}/me`, { credentials: "include" });
+          const data = await res.json();
+          if (data.success) {
+            currentUser = data.user;
+            document.getElementById("user-tiktok").value =
+              currentUser.tiktokUsername || "";
+            if (currentUser.tiktokUsername) {
+              document.getElementById("tiktok-display").textContent =
+                currentUser.tiktokUsername;
+              document.getElementById("connect-text").textContent = "Connected";
+              document.getElementById("connect-text").style.color = "#4caf50";
+            }
+            const avatarUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(currentUser.username)}&background=4caf50&color=fff&size=100`;
+            document.getElementById("liveOwnerImg1").src = avatarUrl;
+            document.getElementById("liveOwnerImg2").src = avatarUrl;
+          }
+        } catch (err) {
+          console.warn("Could not fetch user info", err);
+        }
+
+        await initProfileSelect();
+        await loadGifts();
+        await loadAudios(true);
+        await loadCommands();
+        initTikTokConnection();
+
+        updateInputsForType("gift");
+        resetTestForm();
+
+        showMessage("✅ Welcome, " + (currentUser?.username || "User"));
+      }
+
+      // ========== وظيفة رفع الفيديو داخل الكارد ==========
+      window.uploadVideoForCurrentCard = function () {
+        const fileInput = document.createElement("input");
+        fileInput.type = "file";
+        fileInput.accept = "video/*";
+        fileInput.onchange = async (e) => {
+          const file = e.target.files[0];
+          if (!file) return;
+          const formData = new FormData();
+          formData.append("video", file);
+
+          // الحصول على giftId من الحقل المخفي (إذا كان موجودًا)
+          const giftId = document.getElementById("giftSelect").value;
+          if (giftId) formData.append("giftId", giftId);
+
+          const screen = document.getElementById("screen").value || "1";
+          formData.append("screen", screen);
+
+          try {
+            const res = await fetch(`${API_BASE}/upload-video`, {
+              method: "POST",
+              body: formData,
+              credentials: "include",
+            });
+            const data = await res.json();
+            if (data.success) {
+              document.getElementById("videoStatus").innerHTML =
+                `<i class="fas fa-check-circle"></i> Video uploaded: ${data.filename}`;
+              document.getElementById("videoFilename").value = data.filename;
+              showMessage("✅ Video uploaded successfully!");
+            } else {
+              showMessage("❌ Upload failed: " + data.message, true);
+            }
+          } catch (err) {
+            showMessage("❌ Error: " + err.message, true);
+          }
+        };
+        fileInput.click();
+      };
+
+      // (اختياري) الاحتفاظ بالدالة القديمة للتوافق
+      window.uploadVideo = window.uploadVideoForCurrentCard;
+
+      // ========== تعديل دوال fetch الأصلية لتضمين credentials ==========
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        if (typeof url === "string" && url.startsWith(API_BASE)) {
+          options.credentials = "include";
+        }
+        return originalFetch(url, options);
+      };
+
+      // ========== نسخ الكود الأصلي بالكامل مع تعديلات الصورة ==========
+      const CONFIG = {
+        API_BASE: API_BASE,
+        endpoints: {
+          gifts: "/gifts",
+          giftCommands: "/gift-commands",
+          interactionCommands: "/interaction-commands",
+          testWebhook: "/test-webhook",
+          profiles: "/profiles",
+          profileSelect: "/profile/select",
+          audio: "/audio",
+          tiktok: "/tiktok-user",
+        },
+      };
+
+      let state = {
+        gifts: [],
+        audios: [],
+        editingId: null,
+        editingType: null,
+        currentProfile: 1,
+        autoSaveTimers: new Map(),
+      };
+
+      let currentPreviewAudio = null;
+      let audioPage = 1;
+      let audioHasMore = true;
+      let isLoadingAudios = false;
+      let allAudiosCache = [];
+      let currentAudioFilter = "";
+
+      function escapeHtml(str) {
+        if (!str) return "";
+        return String(str)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#039;");
+      }
+
+      function showMessage(msg, isError = false, duration = 3000) {
+        let el = document.getElementById("message");
+        if (!el) {
+          el = document.createElement("div");
+          el.id = "message";
+          document.body.appendChild(el);
+        }
+        el.textContent = msg;
+        el.style.background = isError ? "#f44336" : "#4caf50";
+        el.style.borderLeft = isError ? "4px solid #ff9800" : "4px solid #fff";
+        el.style.display = "block";
+        setTimeout(() => {
+          el.style.display = "none";
+        }, duration);
+      }
+
+      window.switchTab = function (tabName, btnElement) {
+        document.querySelectorAll(".tab-button").forEach((btn) => {
+          btn.classList.remove("active");
+        });
+        btnElement.classList.add("active");
+
+        document.querySelectorAll(".tab-content").forEach((content) => {
+          content.classList.remove("active");
+        });
+        document.getElementById(`tab-${tabName}`).classList.add("active");
+
+        if (tabName === "webhooks") loadCommands();
+        if (tabName === "settings") checkServerStatus();
+      };
+
+      async function checkServerStatus() {
+        const statusEl = document.getElementById("apiStatus");
+        if (!statusEl) return;
+
+        try {
+          const res = await fetch(
+            `${CONFIG.API_BASE}${CONFIG.endpoints.gifts}`,
+          );
+          if (res.ok) {
+            statusEl.innerHTML = `
+              <div style="color: #b9f6ca;">
+                <i class="fas fa-check-circle"></i> Server is running
+              </div>
+              <div style="margin-top: 10px; color: #aaa;">
+                API: ${CONFIG.API_BASE}<br>
+                Mode: Pure Webhook System (No Commands)
+              </div>
+            `;
+          }
+        } catch (err) {
+          statusEl.innerHTML = `
+            <div style="color: #f6b9b9;">
+              <i class="fas fa-exclamation-triangle"></i> Server not running
+            </div>
+            <div style="margin-top: 10px;">
+              Make sure server is running on port 3000
+            </div>
+          `;
+        }
+      }
+
+      function getSelectedProfileId() {
+        const label = document.getElementById("current-profile-label");
+        return label ? parseInt(label.textContent) || 1 : 1;
+      }
+
+      async function initProfileSelect() {
+        try {
+          const res = await fetch(
+            `${CONFIG.API_BASE}${CONFIG.endpoints.profiles}`,
+          );
+          const data = await res.json();
+          if (data.success && data.profiles) {
+            renderProfileSelect(data.profiles);
+          } else {
+            createDefaultProfiles();
+          }
+        } catch (err) {
+          console.warn("Using default profiles");
+          createDefaultProfiles();
+        }
+      }
+
+      function createDefaultProfiles() {
+        const profiles = [];
+        for (let i = 1; i <= 10; i++) {
+          profiles.push({ id: i, name: `Profile ${i}`, active: i === 1 });
+        }
+        renderProfileSelect(profiles);
+      }
+
+      function renderProfileSelect(profiles) {
+        const wrapper = document.getElementById("select-profile");
+        const selectedEl = wrapper.querySelector(".selected");
+        const optionsContainer = document.getElementById("profile-options");
+
+        if (!optionsContainer) return;
+
+        optionsContainer.innerHTML = "";
+
+        const activeProfile = profiles.find((p) => p.active) || profiles[0];
+        document.getElementById("current-profile-label").textContent =
+          activeProfile.id;
+
+        profiles.forEach((profile) => {
+          const li = document.createElement("li");
+          li.textContent = `Profile ${profile.id}`;
+          li.dataset.profileId = profile.id;
+          if (profile.active) li.classList.add("selected-li");
+
+          li.onclick = async function () {
+            const profileId = parseInt(this.dataset.profileId);
+            try {
+              const res = await fetch(
+                `${CONFIG.API_BASE}${CONFIG.endpoints.profileSelect}`,
+                {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({ profile: profileId }),
+                },
+              );
+              const data = await res.json();
+              if (data.success) {
+                document.getElementById("current-profile-label").textContent =
+                  profileId;
+                optionsContainer.querySelectorAll("li").forEach((item) => {
+                  item.classList.remove("selected-li");
+                });
+                this.classList.add("selected-li");
+                wrapper.classList.remove("open");
+                loadCommands();
+                showMessage(`✅ Switched to Profile ${profileId}`);
+              }
+            } catch (err) {
+              showMessage("❌ Error switching profile", true);
+            }
+          };
+          optionsContainer.appendChild(li);
+        });
+
+        selectedEl.onclick = function (e) {
+          e.stopPropagation();
+          wrapper.classList.toggle("open");
+        };
+
+        document.addEventListener("click", function (e) {
+          if (!wrapper.contains(e.target)) {
+            wrapper.classList.remove("open");
+          }
+        });
+      }
+
+      async function loadGifts() {
+        try {
+          let res = await fetch(`${CONFIG.API_BASE}${CONFIG.endpoints.gifts}`);
+          if (res.ok) {
+            const data = await res.json();
+            state.gifts = data.success ? data.gifts || [] : [];
+          } else {
+            // هدايا افتراضية باستخدام PLACEHOLDER_IMAGE
+            state.gifts = [
+              {
+                id: 1,
+                name: "Rose",
+                diamond_count: 1,
+                image: { url_list: [PLACEHOLDER_IMAGE] },
+              },
+              {
+                id: 2,
+                name: "TikTok",
+                diamond_count: 5,
+                image: { url_list: [PLACEHOLDER_IMAGE] },
+              },
+              {
+                id: 3,
+                name: "Lion",
+                diamond_count: 100,
+                image: { url_list: [PLACEHOLDER_IMAGE] },
+              },
+              {
+                id: 4,
+                name: "Universe",
+                diamond_count: 500,
+                image: { url_list: [PLACEHOLDER_IMAGE] },
+              },
+            ];
+          }
+
+          state.gifts.sort(
+            (a, b) => (a.diamond_count || 0) - (b.diamond_count || 0),
+          );
+
+          renderGiftDropdown();
+        } catch (err) {
+          console.error("Error loading gifts:", err);
+          state.gifts = [];
+          renderGiftDropdown();
+        }
+      }
+
+      function renderGiftDropdown() {
+        const dropdown = document.querySelector("#giftDropdown .options");
+        const selected = document.querySelector("#giftDropdown .selected");
+        const hiddenInput = document.getElementById("giftSelect");
+        const giftNameInput = document.getElementById("giftName");
+
+        if (!dropdown) return;
+
+        dropdown.innerHTML = "";
+
+        if (state.gifts.length === 0) {
+          const emptyMsg = document.createElement("div");
+          emptyMsg.className = "option";
+          emptyMsg.textContent = "No gifts available";
+          dropdown.appendChild(emptyMsg);
+          return;
+        }
+
+        const searchDiv = document.createElement("div");
+        searchDiv.style.cssText = `padding:10px; background:#333; position:sticky; top:0; z-index:10; border-bottom:1px solid #444;`;
+        const searchInput = document.createElement("input");
+        searchInput.type = "text";
+        searchInput.placeholder = "🔍 Search gifts...";
+        searchInput.style.cssText = `width:100%; padding:8px 12px; background:#444; border:1px solid #555; border-radius:4px; color:white; font-size:13px; outline:none;`;
+        searchInput.onclick = (e) => e.stopPropagation();
+        searchInput.onkeydown = (e) => e.stopPropagation();
+        searchDiv.appendChild(searchInput);
+        dropdown.appendChild(searchDiv);
+
+        const listDiv = document.createElement("div");
+        listDiv.style.maxHeight = "300px";
+        listDiv.style.overflowY = "auto";
+        dropdown.appendChild(listDiv);
+
+        function showGifts(filter = "") {
+          listDiv.innerHTML = "";
+          const filtered = state.gifts.filter((gift) =>
+            gift.name.toLowerCase().includes(filter.toLowerCase()),
+          );
+
+          if (filtered.length === 0) {
+            const empty = document.createElement("div");
+            empty.style.cssText = `padding:20px; color:#888; text-align:center; font-size:14px;`;
+            empty.textContent = "❌ No gifts found";
+            listDiv.appendChild(empty);
+            return;
+          }
+
+          filtered.forEach((gift) => {
+            const div = document.createElement("div");
+            div.className = "option";
+            div.style.cssText = `padding:15px; color:#ddd; border-bottom:1px solid #444; cursor:pointer; display:flex; align-items:center; gap:12px; transition:0.2s;`;
+            div.onmouseover = () => (div.style.background = "#444");
+            div.onmouseout = () => (div.style.background = "transparent");
+            div.dataset.giftId = gift.id || "";
+
+            const img = document.createElement("img");
+            img.src = gift.image?.url_list?.[0] || PLACEHOLDER_IMAGE;
+            img.alt = escapeHtml(gift.name);
+            img.style.cssText = `width:35px; height:35px; border-radius:6px; object-fit:cover;`;
+            img.onerror = function () {
+              this.src = PLACEHOLDER_IMAGE;
+              this.onerror = null;
+            };
+
+            const infoDiv = document.createElement("div");
+            infoDiv.style.cssText = `display:flex; flex-direction:column; flex:1;`;
+            const nameSpan = document.createElement("span");
+            nameSpan.style.cssText = `font-size:14px; color:#fff; font-weight:500;`;
+            nameSpan.textContent = gift.name;
+            const priceSpan = document.createElement("span");
+            priceSpan.style.cssText = `font-size:12px; color:#ffd700; margin-top:2px;`;
+            priceSpan.innerHTML = `${gift.diamond_count || 0} 💎`;
+            infoDiv.appendChild(nameSpan);
+            infoDiv.appendChild(priceSpan);
+
+            div.appendChild(img);
+            div.appendChild(infoDiv);
+
+            div.onclick = function (e) {
+              e.stopPropagation();
+              selected.innerHTML = `<div style="display:flex; align-items:center; gap:8px;"><img src="${img.src}" style="width:20px; height:20px; border-radius:4px; object-fit:cover;"><span>${escapeHtml(gift.name)}</span></div>`;
+              hiddenInput.value = gift.id || "";
+              if (giftNameInput) giftNameInput.value = gift.name || "";
+              dropdown.style.display = "none";
+            };
+            listDiv.appendChild(div);
+          });
+        }
+
+        showGifts("");
+
+        searchInput.addEventListener("input", (e) => {
+          showGifts(e.target.value);
+        });
+
+        const giftDropdown = document.getElementById("giftDropdown");
+        if (giftDropdown) {
+          const header = giftDropdown.querySelector(".selected");
+          header.onclick = function (e) {
+            e.stopPropagation();
+            const opts = giftDropdown.querySelector(".options");
+            const isHidden =
+              opts.style.display === "none" || !opts.style.display;
+            opts.style.display = isHidden ? "block" : "none";
+            if (isHidden) {
+              setTimeout(() => {
+                const searchInput = opts.querySelector("input[type='text']");
+                if (searchInput) {
+                  searchInput.value = "";
+                  searchInput.focus();
+                  showGifts("");
+                }
+              }, 50);
+            }
+          };
+        }
+
+        document.addEventListener("click", function (e) {
+          if (!e.target.closest("#giftDropdown")) {
+            const opts = document.querySelector("#giftDropdown .options");
+            if (opts) opts.style.display = "none";
+          }
+        });
+      }
+
+      function cleanAudioName(filename) {
+        if (!filename) return "";
+        let name = filename.replace(/\.(mp3|wav|ogg|m4a)$/i, "");
+        name = name.replace(/^[\d-]+[\s-]*/g, "");
+        name = name.replace(/[-_]/g, " ");
+        name = name.replace(/\s+/g, " ").trim();
+        return name || filename.replace(/\.(mp3|wav|ogg|m4a)$/i, "");
+      }
+
+      async function loadAudios(reset = true) {
+        if (isLoadingAudios) return;
+        if (reset) {
+          audioPage = 1;
+          audioHasMore = true;
+          state.audios = [];
+          allAudiosCache = [];
+          currentAudioFilter = "";
+        }
+        if (!audioHasMore) return;
+
+        isLoadingAudios = true;
+
+        try {
+          if (allAudiosCache.length === 0) {
+            const res = await fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.audio}`,
+            );
+            const data = await res.json();
+
+            if (data.success && data.audios) {
+              if (
+                data.audios.length > 0 &&
+                typeof data.audios[0] === "object"
+              ) {
+                allAudiosCache = data.audios
+                  .map((a) => {
+                    const filename = a.file || a.name;
+                    return { filename, displayName: cleanAudioName(filename) };
+                  })
+                  .filter(Boolean);
+              } else {
+                allAudiosCache = (data.audios || []).map((filename) => ({
+                  filename,
+                  displayName: cleanAudioName(filename),
+                }));
+              }
+            } else {
+              allAudiosCache = [
+                { filename: "notification.mp3", displayName: "Notification" },
+                { filename: "alert.mp3", displayName: "Alert" },
+                { filename: "gift.mp3", displayName: "Gift" },
+              ];
+            }
+          }
+
+          const start = (audioPage - 1) * 30;
+          const end = audioPage * 30;
+          const paginatedAudios = allAudiosCache.slice(start, end);
+
+          if (reset) {
+            state.audios = paginatedAudios;
+          } else {
+            state.audios = [...state.audios, ...paginatedAudios];
+          }
+
+          audioHasMore = end < allAudiosCache.length;
+
+          renderAudioDropdown(reset);
+        } catch (err) {
+          console.error("Error loading audios:", err);
+          if (reset) {
+            state.audios = [
+              { filename: "notification.mp3", displayName: "Notification" },
+              { filename: "alert.mp3", displayName: "Alert" },
+              { filename: "gift.mp3", displayName: "Gift" },
+            ];
+            renderAudioDropdown(reset);
+          }
+        } finally {
+          isLoadingAudios = false;
+        }
+      }
+
+      function renderAudioDropdown(reset = true) {
+        const dropdown = document.querySelector("#audioDropdown .options");
+        const selected = document.querySelector("#audioDropdown .selected");
+        const hiddenInput = document.getElementById("audioSelect");
+
+        if (!dropdown) return;
+
+        if (reset) dropdown.innerHTML = "";
+
+        if (reset || !dropdown.querySelector(".audio-search-container")) {
+          const searchDiv = document.createElement("div");
+          searchDiv.className = "audio-search-container";
+          searchDiv.style.cssText =
+            "padding:10px; background:#333; position:sticky; top:0; z-index:10;";
+          const searchInput = document.createElement("input");
+          searchInput.type = "text";
+          searchInput.placeholder = "🔍 Search audio...";
+          searchInput.className = "audio-search-input";
+          searchInput.value = currentAudioFilter;
+          searchInput.style.cssText = `width:100%; padding:8px 12px; background:#444; border:1px solid #555; border-radius:4px; color:white; font-size:13px;`;
+          searchDiv.appendChild(searchInput);
+          dropdown.appendChild(searchDiv);
+        }
+
+        let listDiv = dropdown.querySelector(".audio-list-container");
+        if (!listDiv) {
+          listDiv = document.createElement("div");
+          listDiv.className = "audio-list-container";
+          listDiv.style.maxHeight = "300px";
+          listDiv.style.overflowY = "auto";
+          dropdown.appendChild(listDiv);
+        }
+
+        listDiv.onscroll = function (e) {
+          if (!audioHasMore || isLoadingAudios || currentAudioFilter) return;
+          const container = e.target;
+          const scrollPosition = container.scrollTop + container.clientHeight;
+          const scrollThreshold = container.scrollHeight - 50;
+          if (scrollPosition >= scrollThreshold) {
+            audioPage++;
+            loadAudios(false);
+          }
+        };
+
+        function showAudios(filter = "") {
+          currentAudioFilter = filter;
+          listDiv.innerHTML = "";
+
+          const noAudio = document.createElement("div");
+          noAudio.className = "option";
+          noAudio.style.cssText =
+            "padding:12px 15px; color:#ddd; border-bottom:1px solid #444; cursor:pointer;";
+          noAudio.textContent = "🔇 No Audio";
+          noAudio.onclick = () => {
+            selected.innerHTML = "<span>🔇 No Audio</span>";
+            hiddenInput.value = "";
+            dropdown.style.display = "none";
+          };
+          listDiv.appendChild(noAudio);
+
+          let filtered = filter
+            ? allAudiosCache.filter((a) =>
+                a.displayName.toLowerCase().includes(filter.toLowerCase()),
+              )
+            : state.audios;
+
+          if (filtered.length === 0) {
+            const empty = document.createElement("div");
+            empty.style.cssText =
+              "padding:15px; color:#888; text-align:center;";
+            empty.textContent = "❌ No audio files found";
+            listDiv.appendChild(empty);
+          } else {
+            filtered.forEach((audio) => {
+              const div = document.createElement("div");
+              div.className = "option";
+              div.style.cssText = `padding:12px 15px; color:#ddd; border-bottom:1px solid #444; cursor:pointer; display:flex; justify-content:space-between; align-items:center;`;
+              div.innerHTML = `
+                <div style="display:flex; align-items:center; gap:10px; flex:1;">
+                  <span>${escapeHtml(audio.displayName)}</span>
+                  <span style="color:#888; font-size:11px;">${escapeHtml(audio.filename)}</span>
+                </div>
+                <button class="but-audio" onclick="event.stopPropagation(); playAudioPreview('${audio.filename}', '${escapeHtml(audio.displayName)}');" style="background:transparent; color:white; border:none; border-radius:4px; padding:6px 12px; font-size:12px; cursor:pointer; display:flex; align-items:center; gap:5px; transition:0.2s; height:44px; border:1px solid #ddd;" onmouseover="this.style.background='#111'" onmouseout="this.style.background='transparent'">
+                  <i class="fas fa-play" style="font-size:10px;"></i> Preview
+                </button>
+              `;
+              const selectAudio = () => {
+                selected.innerHTML = `<span>${escapeHtml(audio.displayName)}</span>`;
+                hiddenInput.value = audio.filename;
+                dropdown.style.display = "none";
+              };
+              div.addEventListener("click", (e) => {
+                if (!e.target.closest("button")) selectAudio();
+              });
+              div.onmouseover = () => {
+                if (!div.style.background) div.style.background = "#444";
+              };
+              div.onmouseout = () => {
+                div.style.background = "transparent";
+              };
+              listDiv.appendChild(div);
+            });
+          }
+
+          if (audioHasMore && !filter) {
+            const loadingIndicator = document.createElement("div");
+            loadingIndicator.style.cssText = `padding:15px; text-align:center; color:#888; border-top:1px solid #444;`;
+            loadingIndicator.innerHTML =
+              '<i class="fas fa-arrow-down"></i> Scroll for more...';
+            listDiv.appendChild(loadingIndicator);
+          }
+        }
+
+        const searchInput = dropdown.querySelector(".audio-search-input");
+        if (searchInput) {
+          if (window.audioSearchHandler) {
+            searchInput.removeEventListener("input", window.audioSearchHandler);
+          }
+          window.audioSearchHandler = (e) => {
+            const filter = e.target.value;
+            listDiv.innerHTML = "";
+            showAudios(filter);
+          };
+          searchInput.addEventListener("input", window.audioSearchHandler);
+          searchInput.addEventListener("click", (e) => e.stopPropagation());
+          searchInput.addEventListener("keydown", (e) => e.stopPropagation());
+        }
+
+        showAudios(currentAudioFilter);
+
+        const audioDropdown = document.getElementById("audioDropdown");
+        if (audioDropdown) {
+          const header = audioDropdown.querySelector(".selected");
+          header.onclick = (e) => {
+            e.stopPropagation();
+            const opts = audioDropdown.querySelector(".options");
+            opts.style.display =
+              opts.style.display === "block" ? "none" : "block";
+            if (opts.style.display === "block") {
+              setTimeout(() => {
+                const searchInput = dropdown.querySelector(
+                  ".audio-search-input",
+                );
+                if (searchInput) searchInput.focus();
+              }, 50);
+            }
+          };
+        }
+
+        document.addEventListener("click", (e) => {
+          if (!e.target.closest("#audioDropdown")) {
+            const opts = document.querySelector("#audioDropdown .options");
+            if (opts) opts.style.display = "none";
+          }
+        });
+      }
+
+      window.playAudioPreview = async function (filename, displayName) {
+        try {
+          if (currentPreviewAudio) {
+            currentPreviewAudio.pause();
+            currentPreviewAudio.currentTime = 0;
+            currentPreviewAudio = null;
+          }
+
+          const audio = new Audio();
+          // ابحث عن هذا السطر وغيره ليكون كالتالي:
+          audio.src = `${API_BASE.replace("/api", "")}/audio/${encodeURIComponent(audioName)}`;
+          audio.volume = 0.5;
+          audio.preload = "auto";
+
+          currentPreviewAudio = audio;
+
+          audio.onended = () => {
+            if (currentPreviewAudio === audio) {
+              currentPreviewAudio = null;
+            }
+          };
+
+          await audio.play();
+          showMessage(`🔊 Playing: ${displayName || filename}`, false, 1500);
+        } catch (err) {
+          console.error("Error playing audio preview:", err);
+          showMessage(`❌ Failed to play audio: ${filename}`, true);
+          if (currentPreviewAudio) {
+            currentPreviewAudio = null;
+          }
+        }
+      };
+
+      window.updateInputsForType = function (type) {
+        const giftSection = document.getElementById("giftChooserSection");
+        const keywordSection = document.getElementById("keywordSection");
+        const thresholdSection = document.getElementById("thresholdSection");
+
+        if (giftSection) giftSection.style.display = "none";
+        if (keywordSection) keywordSection.style.display = "none";
+        if (thresholdSection) thresholdSection.style.display = "none";
+
+        if (type === "gift") {
+          if (giftSection) giftSection.style.display = "block";
+        } else if (type === "comment") {
+          if (keywordSection) keywordSection.style.display = "block";
+        } else if (type === "like") {
+          if (thresholdSection) thresholdSection.style.display = "block";
+        }
+      };
+
+      async function loadCommands() {
+        try {
+          const profileId = getSelectedProfileId();
+          const profileQuery = profileId ? `?profile=${profileId}` : "";
+
+          const [giftRes, interactRes] = await Promise.all([
+            fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}${profileQuery}`,
+            ),
+            fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}${profileQuery}`,
+            ),
+          ]);
+
+          const giftData = await giftRes.json();
+          const interactData = await interactRes.json();
+
+          const giftCommands = (giftData.gifts || []).map((cmd) => ({
+            ...cmd,
+            __type: "gift",
+          }));
+          const interactCommands = (interactData.list || []).map((cmd) => ({
+            ...cmd,
+            __type: "interaction",
+          }));
+
+          const allCommands = [...giftCommands, ...interactCommands];
+
+          renderCommandsTable(allCommands);
+        } catch (err) {
+          console.error("Error loading webhook actions:", err);
+          showMessage("❌ Error loading webhook actions", true);
+          document.getElementById("commandsTable").innerHTML = `
+            <tr>
+              <td colspan="11" style="text-align: center; padding: 40px; color: #f44336;">
+                <i class="fas fa-exclamation-triangle"></i> Failed to load webhook actions. Make sure server is running.
+              </td>
+            </tr>`;
+        }
+      }
+
+      function renderCommandsTable(commands) {
+        const tbody = document.getElementById("commandsTable");
+        if (!tbody) return;
+
+        if (commands.length === 0) {
+          tbody.innerHTML = `
+      <tr>
+        <td colspan="11" style="text-align: center; padding: 40px; color: #888;">
+          <i class="fas fa-inbox"></i> No webhook actions found. Create your first webhook!
+        </td>
+      </tr>`;
+          return;
+        }
+
+        tbody.innerHTML = "";
+
+        commands.forEach((cmd) => {
+          const tr = document.createElement("tr");
+          tr.dataset.id = cmd._id || "";
+          tr.dataset.type = cmd.__type || "interaction";
+          tr.dataset.giftId = cmd.giftId || "";
+          tr.dataset.actionKind =
+            cmd.type || (cmd.__type === "gift" ? "gift" : "comment");
+
+          const isActive = cmd.active !== false ? "checked" : "";
+          const playSound = cmd.playSound !== false ? "checked" : "";
+
+          let giftImageUrl = PLACEHOLDER_IMAGE;
+          let giftName = cmd.giftName || cmd.name || "Gift";
+
+          if (cmd.giftId && state.gifts.length > 0) {
+            const foundGift = state.gifts.find(
+              (g) => String(g.id) === String(cmd.giftId),
+            );
+            if (foundGift) {
+              if (foundGift.image?.url_list?.[0]) {
+                giftImageUrl = foundGift.image.url_list[0];
+              }
+              giftName = foundGift.name;
+            }
+          }
+
+          tr.innerHTML = `
+      <td><input type="checkbox" class="active-checkbox" data-field="active" ${isActive}></td>
+      <td class="action-buttons">
+        <button onclick="editCommand('${cmd._id}', '${cmd.__type}')" title="Edit"><i class="fas fa-edit"></i></button>
+        <button onclick="executeCommand('${cmd._id}', '${cmd.__type}')" title="Execute"><i class="fas fa-play"></i></button>
+        <button onclick="deleteCommand('${cmd._id}', '${cmd.__type}')" title="Delete"><i class="fas fa-trash"></i></button>
+      </td>
+      <td><input type="text" value="${escapeHtml(cmd.name || "")}" data-field="name" placeholder="Name"></td>
+      <td><input type="url" class="webhook-url-input" data-field="webhookUrl" value="${escapeHtml(cmd.webhookUrl || "")}" placeholder="https://..." style="width:250px;"></td>
+      <td><input type="number" value="${cmd.screen || 1}" data-field="screen" style="width:60px;" min="1"></td>
+      <td><input type="number" value="${cmd.repeat || 1}" data-field="repeat" style="width:60px;" min="1"></td>
+      <td><input type="number" value="${cmd.interval || 100}" data-field="interval" style="width:70px;" min="0"></td>
+      <td><input type="number" value="${cmd.delayBefore || 0}" data-field="delayBefore" style="width:70px;" min="0"></td>
+      <td><input type="checkbox" data-field="playSound" ${playSound}></td>
+      <td>
+        <input type="range" min="0" max="100" value="${cmd.volume || 100}" data-field="volume" style="width:120px; cursor:pointer;" oninput="this.nextElementSibling.textContent = this.value">
+        <span style="margin-left:5px;">${cmd.volume || 100}</span>
+      </td>
+      <td>
+        <div style="display:flex; align-items:center; justify-content:center;">
+          <img src="${giftImageUrl}" alt="${escapeHtml(giftName)}" style="width:35px; height:35px; border-radius:6px; object-fit:cover; border:1px solid #444;" onerror="this.onerror=null; this.src='${PLACEHOLDER_IMAGE}';" title="${escapeHtml(giftName)}">
+        </div>
+        <input type="hidden" data-field="type" value="${cmd.type || (cmd.__type === "gift" ? "gift" : "comment")}">
+        <input type="hidden" data-field="giftId" value="${cmd.giftId || ""}">
+      </td>`;
+
+          tbody.appendChild(tr);
+          addAutoSaveListeners(tr);
+        });
+      }
+
+      function addAutoSaveListeners(tr) {
+        const inputs = tr.querySelectorAll(
+          "input[data-field], textarea[data-field], select[data-field]",
+        );
+        inputs.forEach((inp) => {
+          if (inp.type === "checkbox") {
+            inp.addEventListener("change", () => saveRowFromTr(tr));
+          } else {
+            inp.addEventListener("input", () => scheduleAutoSave(tr));
+            inp.addEventListener("blur", () => {
+              const id = tr.dataset.id;
+              if (id && state.autoSaveTimers.has(id)) {
+                clearTimeout(state.autoSaveTimers.get(id));
+                state.autoSaveTimers.delete(id);
+              }
+              saveRowFromTr(tr);
+            });
+          }
+        });
+      }
+
+      function scheduleAutoSave(tr) {
+        const id = tr.dataset.id;
+        if (!id) return;
+        if (state.autoSaveTimers.has(id))
+          clearTimeout(state.autoSaveTimers.get(id));
+        const timer = setTimeout(() => {
+          state.autoSaveTimers.delete(id);
+          saveRowFromTr(tr);
+        }, 800);
+        state.autoSaveTimers.set(id, timer);
+      }
+
+      async function saveRowFromTr(tr) {
+        const id = tr.dataset.id;
+        const rowType = tr.dataset.type;
+        if (!id) return;
+
+        const inputs = tr.querySelectorAll(
+          "input[data-field], textarea[data-field], select[data-field]",
+        );
+        const body = {};
+
+        inputs.forEach((inp) => {
+          const field = inp.dataset.field;
+          if (!field) return;
+          if (inp.type === "checkbox") {
+            body[field] = inp.checked;
+          } else if (inp.type === "number" || inp.type === "range") {
+            body[field] = parseInt(inp.value, 10) || 0;
+          } else {
+            body[field] = inp.value;
+          }
+        });
+
+        body.giftId = tr.dataset.giftId || null;
+        body.profile = getSelectedProfileId();
+
+        if (!body.name || String(body.name).trim() === "") return;
+
+        try {
+          const url =
+            rowType === "gift"
+              ? `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}/${id}`
+              : `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}/${id}`;
+
+          await fetch(url, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(body),
+          });
+          showMessage("✅ Auto-saved");
+        } catch (err) {
+          console.error(err);
+          showMessage("❌ Save error", true);
+        }
+      }
+
+      window.showAddCard = function (commandData = null) {
+        const card = document.getElementById("addCard");
+        card.style.display = "block";
+
+        // إعادة تعيين حقل الفيديو
+        document.getElementById("videoStatus").innerHTML = "";
+        document.getElementById("videoFilename").value = "";
+
+        if (commandData) {
+          state.editingId = commandData._id;
+          state.editingType =
+            commandData.__type || (commandData.giftId ? "gift" : "interaction");
+
+          document.getElementById("actionType").value =
+            commandData.type || "gift";
+          document.getElementById("actionName").value = commandData.name || "";
+          document.getElementById("targetUser").value =
+            commandData.targetUser || "all";
+          document.getElementById("keyword").value = commandData.keyword || "";
+          document.getElementById("threshold").value =
+            commandData.threshold || 0;
+          document.getElementById("repeat").value = commandData.repeat || 1;
+          document.getElementById("interval").value =
+            commandData.interval || 100;
+          document.getElementById("delayBefore").value =
+            commandData.delayBefore || 0;
+          document.getElementById("audioSelect").value =
+            commandData.audio || "";
+          document.querySelector("#audioDropdown .selected").innerHTML =
+            commandData.audio
+              ? `<span>${escapeHtml(cleanAudioName(commandData.audio))}</span>`
+              : "<span>Choose audio...</span>";
+          document.getElementById("volume").value = commandData.volume || 100;
+          document.getElementById("volumeValue").textContent =
+            commandData.volume || 100;
+          document.getElementById("screen").value = commandData.screen || 1;
+          document.getElementById("oncePerLive").checked =
+            !!commandData.oncePerLive;
+          document.getElementById("webhookUrl").value =
+            commandData.webhookUrl || "";
+
+          if (commandData.giftId) {
+            document.getElementById("giftSelect").value = commandData.giftId;
+            document.getElementById("giftName").value = commandData.name || "";
+            document.querySelector("#giftDropdown .selected").innerHTML =
+              commandData.giftName
+                ? `<span>${escapeHtml(commandData.giftName)}</span>`
+                : "<span>Gift selected</span>";
+          }
+
+          // إذا كان هناك فيديو مرتبط
+          if (commandData.video) {
+            document.getElementById("videoStatus").innerHTML =
+              `<i class="fas fa-video"></i> Video: ${commandData.video}`;
+            document.getElementById("videoFilename").value = commandData.video;
+          }
+
+          updateInputsForType(commandData.type || "gift");
+        } else {
+          state.editingId = null;
+          state.editingType = null;
+
+          document.getElementById("actionType").value = "gift";
+          document.getElementById("actionName").value = "";
+          document.getElementById("targetUser").value = "all";
+          document.getElementById("keyword").value = "";
+          document.getElementById("threshold").value = "0";
+          document.getElementById("repeat").value = "1";
+          document.getElementById("interval").value = "100";
+          document.getElementById("delayBefore").value = "0";
+          document.getElementById("audioSelect").value = "";
+          document.querySelector("#audioDropdown .selected").innerHTML =
+            "<span>Choose audio...</span>";
+          document.getElementById("volume").value = "100";
+          document.getElementById("volumeValue").textContent = "100";
+          document.getElementById("screen").value = "1";
+          document.getElementById("oncePerLive").checked = false;
+          document.getElementById("webhookUrl").value = "";
+          document.getElementById("giftSelect").value = "";
+          document.getElementById("giftName").value = "";
+          document.querySelector("#giftDropdown .selected").innerHTML =
+            "<span>Choose a gift...</span>";
+
+          updateInputsForType("gift");
+        }
+      };
+
+      window.hideAddCard = function () {
+        document.getElementById("addCard").style.display = "none";
+        state.editingId = null;
+        state.editingType = null;
+      };
+
+      window.confirmAdd = async function (event) {
+        event.preventDefault();
+
+        const actionType = document.getElementById("actionType").value;
+        const nameValue = document.getElementById("actionName").value.trim();
+        const webhookUrl = document.getElementById("webhookUrl").value.trim();
+
+        if (!nameValue) {
+          showMessage("⚠️ Action name is required", true);
+          return;
+        }
+        if (!webhookUrl) {
+          showMessage("⚠️ Webhook URL is required", true);
+          return;
+        }
+
+        const body = {
+          name: nameValue,
+          webhookUrl: webhookUrl,
+          type: actionType,
+          targetUser:
+            document.getElementById("targetUser").value.trim() || "all",
+          keyword: document.getElementById("keyword").value.trim(),
+          threshold: parseInt(document.getElementById("threshold").value) || 0,
+          repeat: parseInt(document.getElementById("repeat").value) || 1,
+          interval: parseInt(document.getElementById("interval").value) || 100,
+          delayBefore:
+            parseInt(document.getElementById("delayBefore").value) || 0,
+          audio: document.getElementById("audioSelect").value || null,
+          volume: parseInt(document.getElementById("volume").value) || 100,
+          screen: parseInt(document.getElementById("screen").value) || 1,
+          oncePerLive: document.getElementById("oncePerLive").checked,
+          active: true,
+          playSound: true,
+          playVideo: true, // تفعيل الفيديو
+          video: document.getElementById("videoFilename").value || null, // إضافة الفيديو
+          profile: getSelectedProfileId(),
+        };
+
+        if (actionType === "gift") {
+          const giftId = document.getElementById("giftSelect").value;
+          if (!giftId) {
+            showMessage("⚠️ Please select a gift", true);
+            return;
+          }
+          body.giftId = giftId;
+          body.giftName =
+            document.getElementById("giftName").value || nameValue;
+        }
+
+        // تسجيل البيانات المرسلة للتأكد
+        console.log("Sending body:", body);
+
+        try {
+          let response;
+          if (state.editingId && state.editingType) {
+            const url =
+              state.editingType === "gift"
+                ? `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}/${state.editingId}`
+                : `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}/${state.editingId}`;
+            response = await fetch(url, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+          } else {
+            const url =
+              actionType === "gift"
+                ? `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}`
+                : `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}`;
+            response = await fetch(url, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(body),
+            });
+          }
+
+          const result = await response.json();
+          console.log("Response:", result);
+
+          if (response.ok && result.success) {
+            showMessage(
+              state.editingId
+                ? "✅ Webhook action updated!"
+                : "✅ Webhook action created!",
+            );
+            hideAddCard();
+            loadCommands();
+            state.editingId = null;
+            state.editingType = null;
+          } else {
+            // عرض رسالة الخطأ من السيرفر
+            showMessage(`❌ Error: ${result.message || "Unknown error"}`, true);
+          }
+        } catch (err) {
+          console.error("Error saving webhook action:", err);
+          showMessage(`❌ Network error: ${err.message}`, true);
+        }
+      };
+
+      window.editCommand = async function (id, type) {
+        try {
+          const url =
+            type === "gift"
+              ? `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}/${id}`
+              : `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}/${id}`;
+          const res = await fetch(url);
+          const data = await res.json();
+
+          if (data.success || data._id) {
+            const cmd =
+              type === "gift" ? data.gift || data : data.command || data;
+            cmd.__type = type;
+            showAddCard(cmd);
+          }
+        } catch (err) {
+          console.error("Error loading webhook action:", err);
+          showMessage("❌ Error loading webhook action", true);
+        }
+      };
+
+      window.executeCommand = async function (id, rowType) {
+        const tr = document.querySelector(`tr[data-id="${id}"]`);
+        if (!tr) return;
+
+        const activeCheckbox = tr.querySelector(".active-checkbox");
+        if (!activeCheckbox.checked) {
+          showMessage("⚠️ Webhook is inactive - cannot execute", true);
+          return;
+        }
+
+        const webhookUrl = tr.querySelector(".webhook-url-input")?.value.trim();
+        const screenInput = tr.querySelector('input[data-field="screen"]');
+        const screen = screenInput ? parseInt(screenInput.value) || 1 : 1;
+
+        if (!webhookUrl) {
+          showMessage("⚠️ No webhook URL configured", true);
+          return;
+        }
+
+        try {
+          const execUrl =
+            rowType === "gift"
+              ? `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}/${id}/execute`
+              : `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}/${id}/execute`;
+          await fetch(execUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ count: 1, screen }),
+          });
+          showMessage("✅ Webhook executed");
+        } catch (err) {
+          console.error("Error executing:", err);
+          showMessage("❌ Error executing webhook", true);
+        }
+      };
+
+      window.deleteCommand = async function (id, rowType) {
+        if (!confirm("Delete this webhook action?")) return;
+        try {
+          const url =
+            rowType === "gift"
+              ? `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}/${id}`
+              : `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}/${id}`;
+          await fetch(url, { method: "DELETE" });
+          showMessage("🗑️ Deleted");
+          loadCommands();
+        } catch (err) {
+          console.error(err);
+          showMessage("❌ Delete error", true);
+        }
+      };
+
+      window.testAllWebhooks = async function () {
+        try {
+          const profileId = getSelectedProfileId();
+          const profileQuery = profileId ? `?profile=${profileId}` : "";
+
+          const [giftRes, interactRes] = await Promise.all([
+            fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}${profileQuery}`,
+            ),
+            fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}${profileQuery}`,
+            ),
+          ]);
+
+          const giftData = await giftRes.json();
+          const interactData = await interactRes.json();
+
+          const allWebhooks = [
+            ...(giftData.gifts || []),
+            ...(interactData.list || []),
+          ].filter((w) => w.webhookUrl);
+
+          if (allWebhooks.length === 0) {
+            showMessage("ℹ️ No webhooks to test");
+            return;
+          }
+
+          showMessage(`🔍 Testing ${allWebhooks.length} webhooks...`);
+          let success = 0;
+          for (const webhook of allWebhooks) {
+            const result = await testSpecificWebhook(webhook.webhookUrl);
+            if (result) success++;
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+          showMessage(`✅ Tested ${success}/${allWebhooks.length} webhooks`);
+        } catch (err) {
+          console.error("Error testing webhooks:", err);
+          showMessage("❌ Error testing webhooks", true);
+        }
+      };
+
+      window.testSpecificWebhook = async function (url) {
+        if (!url) return false;
+        try {
+          const testData = {
+            url,
+            payload: {
+              test: true,
+              timestamp: new Date().toISOString(),
+              message: "Test webhook from Black Moon",
+              source: "blackmoon_tester",
+            },
+          };
+          const testRes = await fetch(
+            `${CONFIG.API_BASE}${CONFIG.endpoints.testWebhook}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(testData),
+            },
+          );
+          const result = await testRes.json();
+          if (result.success) {
+            showMessage(
+              `✅ Webhook test successful (${result.status})`,
+              false,
+              2000,
+            );
+            return true;
+          } else {
+            showMessage(
+              `❌ Webhook test failed (${result.status || "error"})`,
+              true,
+              2000,
+            );
+            return false;
+          }
+        } catch (err) {
+          console.error("Error testing webhook:", err);
+          return false;
+        }
+      };
+
+      window.testCurrentWebhook = async function () {
+        const webhookUrl = document.getElementById("webhookUrl").value.trim();
+        if (!webhookUrl) {
+          showMessage("⚠️ Please enter a webhook URL first", true);
+          return;
+        }
+        const button = document.querySelector("#webhookUrl + div button");
+        if (button) {
+          button.disabled = true;
+          button.innerHTML =
+            '<i class="fas fa-spinner fa-spin"></i> Testing...';
+        }
+        try {
+          await testSpecificWebhook(webhookUrl);
+        } finally {
+          if (button) {
+            button.disabled = false;
+            button.innerHTML = '<i class="fas fa-vial"></i> Test Webhook';
+          }
+        }
+      };
+
+      window.testRowWebhook = async function (button) {
+        const tr = button.closest("tr");
+        const webhookUrl = tr.querySelector(".webhook-url-input")?.value.trim();
+        if (!webhookUrl) {
+          showMessage("⚠️ No webhook URL to test", true);
+          return;
+        }
+        button.disabled = true;
+        button.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        try {
+          await testSpecificWebhook(webhookUrl);
+        } finally {
+          button.disabled = false;
+          button.innerHTML = '<i class="fas fa-globe"></i>';
+        }
+      };
+
+      window.sendTestWebhook = async function () {
+        const url = document.getElementById("testWebhookUrl").value.trim();
+        const payloadText = document.getElementById("testPayload").value;
+        if (!url) {
+          showMessage("⚠️ Please enter a webhook URL", true);
+          return;
+        }
+        try {
+          const payload = JSON.parse(payloadText);
+          const testData = { url, payload };
+          const testRes = await fetch(
+            `${CONFIG.API_BASE}${CONFIG.endpoints.testWebhook}`,
+            {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(testData),
+            },
+          );
+          const result = await testRes.json();
+          const resultsEl = document.getElementById("testResults");
+          if (result.success) {
+            resultsEl.innerHTML = `<div style="color:#b9f6ca; background:#1e3a2e; padding:15px; border-radius:6px;"><strong><i class="fas fa-check-circle"></i> Success!</strong><br>Status: ${result.status} ${result.statusText || ""}<br>Response: ${escapeHtml(result.response || "No response body")}</div>`;
+            showMessage("✅ Test successful!");
+          } else {
+            resultsEl.innerHTML = `<div style="color:#f6b9b9; background:#3a1e1e; padding:15px; border-radius:6px;"><strong><i class="fas fa-exclamation-circle"></i> Failed!</strong><br>Message: ${result.message}<br>Error: ${result.type || "Unknown"}</div>`;
+            showMessage("❌ Test failed", true);
+          }
+        } catch (err) {
+          document.getElementById("testResults").innerHTML =
+            `<div style="color:#f6b9b9; background:#3a1e1e; padding:15px; border-radius:6px;"><strong><i class="fas fa-exclamation-triangle"></i> Error!</strong><br>${escapeHtml(err.message)}</div>`;
+          showMessage("❌ Error sending test", true);
+        }
+      };
+
+      window.resetTestForm = function () {
+        document.getElementById("testWebhookUrl").value = "";
+        document.getElementById("testPayload").value =
+          `{\n  "test": true,\n  "timestamp": "${new Date().toISOString()}",\n  "message": "Test webhook from Black Moon",\n  "user": "TestUser",\n  "type": "test",\n  "source": "blackmoon_tester",\n  "profile": ${getSelectedProfileId()}\n}`;
+        document.getElementById("testResults").innerHTML =
+          "Test results will appear here...";
+      };
+
+      window.setDiscordTemplate = function () {
+        document.getElementById("testWebhookUrl").value =
+          "https://discord.com/api/webhooks/YOUR_WEBHOOK_URL";
+        document.getElementById("testPayload").value =
+          `{\n  "content": "Hello from Black Moon!",\n  "embeds": [{\n    "title": "Test Notification",\n    "description": "This is a test webhook from Black Moon system",\n    "color": 5814783,\n    "timestamp": "${new Date().toISOString()}"\n  }]\n}`;
+      };
+
+      window.setTelegramTemplate = function () {
+        document.getElementById("testWebhookUrl").value =
+          "https://api.telegram.org/botYOUR_BOT_TOKEN/sendMessage";
+        document.getElementById("testPayload").value =
+          `{\n  "chat_id": "YOUR_CHAT_ID",\n  "text": "Hello from Black Moon!\\nThis is a test message.",\n  "parse_mode": "Markdown"\n}`;
+      };
+
+      window.setSlackTemplate = function () {
+        document.getElementById("testWebhookUrl").value =
+          "https://hooks.slack.com/services/YOUR_WEBHOOK_URL";
+        document.getElementById("testPayload").value =
+          `{\n  "text": "Hello from Black Moon!",\n  "blocks": [\n    {\n      "type": "section",\n      "text": {\n        "type": "mrkdwn",\n        "text": "*Test Notification*\\nThis is a test webhook from Black Moon system"\n      }\n    }\n  ]\n}`;
+      };
+
+      window.openDeleteModal = function () {
+        document.getElementById("deleteModal").style.display = "flex";
+      };
+      window.closeModal = function () {
+        document.getElementById("deleteModal").style.display = "none";
+      };
+      window.deleteAll = async function () {
+        try {
+          const profileId = getSelectedProfileId();
+          const [giftRes, interactRes] = await Promise.all([
+            fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}?profile=${profileId}`,
+            ),
+            fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}?profile=${profileId}`,
+            ),
+          ]);
+          const giftData = await giftRes.json();
+          const interactData = await interactRes.json();
+          const giftDeletePromises = (giftData.gifts || []).map((gift) =>
+            fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.giftCommands}/${gift._id}`,
+              {
+                method: "DELETE",
+              },
+            ),
+          );
+          const interactDeletePromises = (interactData.list || []).map((cmd) =>
+            fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.interactionCommands}/${cmd._id}`,
+              { method: "DELETE" },
+            ),
+          );
+          await Promise.all([...giftDeletePromises, ...interactDeletePromises]);
+          showMessage("✅ All webhook actions deleted");
+          loadCommands();
+        } catch (err) {
+          console.error("Error deleting all:", err);
+          showMessage("❌ Error deleting webhook actions", true);
+        } finally {
+          closeModal();
+        }
+      };
+
+      window.refreshCommands = function () {
+        loadCommands();
+        showMessage("🔄 Refreshed webhook list");
+      };
+
+      async function initTikTokConnection() {
+        const connectBtn = document.getElementById("send-usertik");
+        connectBtn.addEventListener("click", async () => {
+          const username = document.getElementById("user-tiktok").value.trim();
+          if (!username) {
+            showMessage("⚠️ Please enter TikTok username", true);
+            return;
+          }
+          try {
+            const res = await fetch(
+              `${CONFIG.API_BASE}${CONFIG.endpoints.tiktok}`,
+              {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ username }),
+              },
+            );
+            const data = await res.json();
+            if (data.success) {
+              showMessage("✅ Connected to TikTok!");
+              document.getElementById("tiktok-display").textContent = username;
+              document.getElementById("connect-text").textContent = "Connected";
+              document.getElementById("connect-text").style.color = "#4caf50";
+            } else {
+              showMessage(
+                `❌ Failed: ${data.message || "Unknown error"}`,
+                true,
+              );
+            }
+          } catch (err) {
+            console.error("Error connecting:", err);
+            showMessage("❌ Connection error: " + err.message, true);
+          }
+        });
+      }
+
+      // ========== التحقق من الجلسة عند تحميل الصفحة ==========
+      document.addEventListener("DOMContentLoaded", async () => {
+        // محاولة تسجيل الدخول التلقائي
+        try {
+          const res = await fetch(`${API_BASE}/me`, { credentials: "include" });
+          const data = await res.json();
+          if (data.success) {
+            currentUser = data.user;
+            document.getElementById("authOverlay").style.display = "none";
+            document.getElementById("mainApp").style.display = "block";
+            initializeApp();
+          } else {
+            showLogin();
+          }
+        } catch (err) {
+          showLogin();
+        }
+      });
+    </script>
+  </body>
+</html>

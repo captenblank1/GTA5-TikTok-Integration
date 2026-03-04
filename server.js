@@ -52,7 +52,8 @@ app.use(cors());
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
-app.use(express.static(path.join(__dirname, "../tik_black")));
+// نستخدم .. للخروج من backend ثم الدخول لـ tik_black
+app.use(express.static(path.join(__dirname, "public", "tik_black")));
 
 // Content Security Policy محدثة لتسمح بـ socket.io
 app.use((req, res, next) => {
@@ -62,8 +63,12 @@ app.use((req, res, next) => {
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; " +
       "font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; " +
       "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.socket.io; " +
-      "connect-src 'self' http://localhost:3000 ws://localhost:3000 https://cdn.socket.io; " +
-      "img-src 'self' data: https://via.placeholder.com https://ui-avatars.com;",
+      "connect-src 'self' " +
+      "http://localhost:3000 ws://localhost:3000 " +
+      "https://gta5-tiktok-integration-production.up.railway.app " +
+      "wss://gta5-tiktok-integration-production.up.railway.app " +
+      "https://cdn.socket.io; " +
+      "img-src 'self' data: https://via.placeholder.com https://ui-avatars.com https://*.tiktokcdn.com;",
   );
   next();
 });
@@ -1791,6 +1796,11 @@ mongoose.connection.once("open", async () => {
   } catch (err) {
     console.error("❌ Error starting services:", err.message);
   }
+});
+
+app.get("*", (req, res) => {
+  // السيرفر هيدور على index.html جوه فولدر tik_black
+  res.sendFile(path.join(__dirname, "public", "tik_black", "index.html"));
 });
 
 server.listen(PORT, () => {
