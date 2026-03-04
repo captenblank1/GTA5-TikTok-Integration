@@ -1802,9 +1802,6 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, "public", "tik_black", "index.html"));
 });
 
-server.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`🎵 Audio directory: ${audioDir}`);
-  console.log(`🖼️ Images directory: ${imagesDir}`);
-  console.log(`🌐 Webhook Mode: Only webhookUrl exists - No commands`);
+server.listen(PORT, "0.0.0.0", () => {
+  console.log(`🚀 السيرفر يعمل الآن على المنفذ: ${PORT}`);
 });
