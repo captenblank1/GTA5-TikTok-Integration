@@ -1798,7 +1798,7 @@ mongoose.connection.once("open", async () => {
   }
 });
 
-app.get("*", (req, res) => {
+app.get("/*", (req, res) => {
   // السيرفر هيدور على index.html جوه فولدر tik_black
   res.sendFile(path.join(__dirname, "public", "tik_black", "index.html"));
 });
