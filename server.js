@@ -47,15 +47,23 @@ if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
 const videoDir = path.join(__dirname, "videos");
 if (!fs.existsSync(videoDir)) fs.mkdirSync(videoDir, { recursive: true });
 
+// مجلد لتحميل العميل (اختياري)
+const downloadsDir = path.join(__dirname, "public", "downloads");
+if (!fs.existsSync(downloadsDir))
+  fs.mkdirSync(downloadsDir, { recursive: true });
+
 // ================ Middleware ================
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+  }),
+);
 app.use(cookieParser());
 app.use(bodyParser.json({ limit: "50mb" }));
 app.use(bodyParser.urlencoded({ extended: true, limit: "50mb" }));
-// نستخدم .. للخروج من backend ثم الدخول لـ tik_black
 app.use(express.static(path.join(__dirname, "public", "tik_black")));
 
-// Content Security Policy محدثة لتسمح بـ socket.io
 app.use((req, res, next) => {
   res.setHeader(
     "Content-Security-Policy",
@@ -73,7 +81,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// خدمة الملفات الثابتة
 app.use(
   "/audio",
   express.static(audioDir, {
@@ -90,8 +97,9 @@ app.use(
 app.use("/images", express.static(imagesDir));
 app.use("/public", express.static(path.join(__dirname, "public")));
 app.use("/videos", express.static(videoDir));
+// إضافة مجلد التحميلات
+app.use("/downloads", express.static(downloadsDir));
 
-// Debug logging
 app.use((req, res, next) => {
   console.log(`📡 ${req.method} ${req.url}`);
   const oldSend = res.send;
@@ -104,17 +112,15 @@ app.use((req, res, next) => {
 
 // ================ MongoDB ================
 mongoose
-  .connect(process.env.MONGODB_URI) // هنا هيقرأ الرابط بتاع Atlas
+  .connect(process.env.MONGODB_URI)
   .then(() => {
     console.log("✅ متصل بنجاح بـ MongoDB Atlas السحابية");
-    seedAudio(); // استدعاء دالة مزامنة الأصوات بعد الاتصال
+    seedAudio();
   })
   .catch((err) => console.error("❌ فشل الاتصال بـ Atlas:", err));
-// ================ نماذج Mongoose ================
 
 // ================ نماذج Mongoose ================
 
-// 1. تعريف الـ Schema
 const UserSchema = new mongoose.Schema(
   {
     username: { type: String, required: true, unique: true },
@@ -130,15 +136,8 @@ const UserSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-
-// 2. إضافة الفهارس (Indexes) هنا (قبل الـ Model)
-UserSchema.index({ username: 1 });
-UserSchema.index({ screenToken: 1 }); // مهم جداً لأنك بتبحث بالتوكن في شاشات العرض
-
-// 3. تعريف الـ Model
 const UserModel = mongoose.model("User", UserSchema);
 
-// أمر هدية
 const GiftCommandSchema = new mongoose.Schema(
   {
     userId: {
@@ -167,7 +166,6 @@ const GiftCommandSchema = new mongoose.Schema(
 );
 const GiftCommandModel = mongoose.model("GiftCommand", GiftCommandSchema);
 
-// أمر تفاعلي
 const InteractionCommandSchema = new mongoose.Schema(
   {
     userId: {
@@ -205,7 +203,6 @@ const InteractionCommandModel = mongoose.model(
   InteractionCommandSchema,
 );
 
-// قائمة الهدايا
 const GiftSchema = new mongoose.Schema({
   id: Number,
   name: String,
@@ -217,7 +214,6 @@ const GiftSchema = new mongoose.Schema({
 });
 const GiftModel = mongoose.model("Gift", GiftSchema);
 
-// ملفات الصوت
 const AudioSchema = new mongoose.Schema({
   name: String,
   file: String,
@@ -339,6 +335,47 @@ async function sendWebhook(webhookUrl, data) {
   }
 }
 
+// ================ دالة جديدة لإرسال الويب هوك عبر العميل المحلي ================
+async function sendWebhookOrDesktop(
+  userId,
+  webhookUrl,
+  data,
+  repeat = 1,
+  interval = 500,
+  delayBefore = 0,
+) {
+  if (!webhookUrl) return;
+
+  // التحقق مما إذا كان الرابط يشير إلى localhost (أي يحتاج إلى تنفيذ محلي)
+  const isLocalhost =
+    webhookUrl.includes("localhost") || webhookUrl.includes("127.0.0.1");
+
+  if (isLocalhost) {
+    const desktopRoom = `desktop:${userId}`;
+    // التحقق من وجود عملاء متصلين في غرفة desktop
+    const socketsInRoom = await io.in(desktopRoom).fetchSockets();
+    if (socketsInRoom.length > 0) {
+      io.to(desktopRoom).emit("webhook-request", {
+        url: webhookUrl,
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: data,
+        repeat: repeat,
+        interval: interval,
+        delayBefore: delayBefore,
+      });
+      console.log(`📦 [User ${userId}] Sent to desktop client: ${webhookUrl}`);
+    } else {
+      console.warn(
+        `⚠️ [User ${userId}] No desktop client connected. Webhook not sent: ${webhookUrl}`,
+      );
+    }
+  } else {
+    // رابط خارجي عادي نرسله عبر HTTP
+    await sendWebhook(webhookUrl, data);
+  }
+}
+
 async function playAudio(userId, file, volume = 100) {
   try {
     const audioPath = path.join(audioDir, file);
@@ -405,10 +442,14 @@ async function runCommandObject(userId, cmdObj, triggerUser = "Unknown") {
       interval,
     };
 
+    // استبدال sendWebhook بـ sendWebhookOrDesktop
     for (let i = 0; i < repeat; i++) {
       if (i > 0 && interval > 0)
         await new Promise((resolve) => setTimeout(resolve, interval));
-      await sendWebhook(webhookUrl, webhookData);
+      await sendWebhookOrDesktop(userId, webhookUrl, webhookData, 1, 0, 0); // نمرر التكرارات داخل الدالة الجديدة
+      // ملاحظة: تم إزالة التكرار هنا لأن sendWebhookOrDesktop ستتعامل مع التكرار إذا كان localhost،
+      // ولكن بالنسبة للويب هوك العادي فإن sendWebhook لا يتعامل مع التكرار، لذلك سنبقي التكرار في هذه الحلقة.
+      // لكن للتبسيط، يمكننا ترك الحلقة كما هي مع استدعاء sendWebhookOrDesktop مرة واحدة لكل تكرار.
     }
 
     if (audio && cmdObj.playSound !== false) {
@@ -1721,6 +1762,11 @@ app.get("/screens/:token/:screenNumber", async (req, res) => {
   }
 });
 
+// ================ مسار لجلب رمز الربط للعميل المحلي ================
+app.get("/api/client-token", authenticateToken, (req, res) => {
+  res.json({ success: true, token: req.user.screenToken });
+});
+
 // ================ Socket.IO مع مصادقة ================
 io.use(async (socket, next) => {
   const token = socket.handshake.query.token;
@@ -1739,9 +1785,18 @@ io.use(async (socket, next) => {
   );
   socket.join(socket.userId);
 
+  // استماع لتسجيل العميل المحلي (desktop client)
+  socket.on("register", (data) => {
+    if (data && data.type === "desktop") {
+      socket.join(`desktop:${socket.userId}`);
+      console.log(`💻 Desktop client registered for user ${socket.userId}`);
+    }
+  });
+
   socket.on("disconnect", () => {
     console.log(`📱 Socket.IO client disconnected: ${socket.id}`);
     socket.leave(socket.userId);
+    // يمكن إزالة العميل من غرفة desktop تلقائيًا عند قطع الاتصال
   });
 });
 
