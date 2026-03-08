@@ -317,16 +317,18 @@ async function sendWebhook(webhookUrl, data) {
     if (!webhookUrl || !webhookUrl.trim()) return;
     console.log(`🌐 [WEBHOOK] Sending to: ${webhookUrl.substring(0, 50)}...`);
 
-    const tryFetch = async (url) => {
+    const tryFetch = async (url, extraHeaders = {}) => {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 5000);
       try {
+        const headers = {
+          "Content-Type": "application/json",
+          "User-Agent": "BlackMoon/1.0",
+          ...extraHeaders,
+        };
         const response = await fetch(url, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "User-Agent": "BlackMoon/1.0",
-          },
+          headers,
           body: JSON.stringify(data),
           signal: controller.signal,
         });
@@ -343,16 +345,16 @@ async function sendWebhook(webhookUrl, data) {
       if (response.ok) console.log(`✅ [WEBHOOK] Success (${response.status})`);
       else console.warn(`⚠️ [WEBHOOK] Failed (${response.status})`);
     } catch (err) {
-      // إذا كان الخطأ بسبب رفض الاتصال والرابط يشير إلى localhost، حاول باستخدام 127.0.0.1
+      // إذا كان الخطأ بسبب رفض الاتصال والرابط يشير إلى localhost، حاول باستخدام 127.0.0.1 مع إضافة Host
       if (
         err.message.includes("ECONNREFUSED") &&
         webhookUrl.includes("localhost")
       ) {
         const ipv4Url = webhookUrl.replace("localhost", "127.0.0.1");
         console.log(
-          `⚠️ فشل الاتصال بـ localhost (ربما IPv6). إعادة المحاولة باستخدام ${ipv4Url}`,
+          `⚠️ فشل الاتصال بـ localhost (ربما IPv6). إعادة المحاولة باستخدام ${ipv4Url} مع Host: localhost`,
         );
-        const response = await tryFetch(ipv4Url);
+        const response = await tryFetch(ipv4Url, { Host: "localhost" });
         if (response.ok)
           console.log(
             `✅ [WEBHOOK] Success (${response.status}) after retry with IPv4`,
