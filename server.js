@@ -316,26 +316,58 @@ async function sendWebhook(webhookUrl, data) {
   try {
     if (!webhookUrl || !webhookUrl.trim()) return;
     console.log(`🌐 [WEBHOOK] Sending to: ${webhookUrl.substring(0, 50)}...`);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 5000);
-    const response = await fetch(webhookUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "User-Agent": "BlackMoon/1.0",
-      },
-      body: JSON.stringify(data),
-      signal: controller.signal,
-    });
-    clearTimeout(timeoutId);
-    if (response.ok) console.log(`✅ [WEBHOOK] Success (${response.status})`);
-    else console.warn(`⚠️ [WEBHOOK] Failed (${response.status})`);
+
+    const tryFetch = async (url) => {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "User-Agent": "BlackMoon/1.0",
+          },
+          body: JSON.stringify(data),
+          signal: controller.signal,
+        });
+        clearTimeout(timeoutId);
+        return response;
+      } catch (err) {
+        clearTimeout(timeoutId);
+        throw err;
+      }
+    };
+
+    try {
+      const response = await tryFetch(webhookUrl);
+      if (response.ok) console.log(`✅ [WEBHOOK] Success (${response.status})`);
+      else console.warn(`⚠️ [WEBHOOK] Failed (${response.status})`);
+    } catch (err) {
+      // إذا كان الخطأ بسبب رفض الاتصال والرابط يشير إلى localhost، حاول باستخدام 127.0.0.1
+      if (
+        err.message.includes("ECONNREFUSED") &&
+        webhookUrl.includes("localhost")
+      ) {
+        const ipv4Url = webhookUrl.replace("localhost", "127.0.0.1");
+        console.log(
+          `⚠️ فشل الاتصال بـ localhost (ربما IPv6). إعادة المحاولة باستخدام ${ipv4Url}`,
+        );
+        const response = await tryFetch(ipv4Url);
+        if (response.ok)
+          console.log(
+            `✅ [WEBHOOK] Success (${response.status}) after retry with IPv4`,
+          );
+        else
+          console.warn(`⚠️ [WEBHOOK] Failed (${response.status}) after retry`);
+      } else {
+        if (err.name === "AbortError") console.error("❌ [WEBHOOK] Timeout");
+        else console.error("❌ [WEBHOOK] Error:", err.message);
+      }
+    }
   } catch (err) {
-    if (err.name === "AbortError") console.error("❌ [WEBHOOK] Timeout");
-    else console.error("❌ [WEBHOOK] Error:", err.message);
+    console.error("❌ [WEBHOOK] Unexpected error:", err.message);
   }
 }
-
 // ================ دالة جديدة لإرسال الويب هوك عبر العميل المحلي ================
 async function sendWebhookOrDesktop(
   userId,
