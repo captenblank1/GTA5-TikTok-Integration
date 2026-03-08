@@ -73,6 +73,7 @@ app.use((req, res, next) => {
       "script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.socket.io; " +
       "connect-src 'self' " +
       "http://localhost:3000 ws://localhost:3000 " +
+      "http://[::1]:3000 ws://[::1]:3000 " + // إضافة IPv6 localhost
       "https://gta5-tiktok-integration-production.up.railway.app " +
       "wss://gta5-tiktok-integration-production.up.railway.app " +
       "https://cdn.socket.io; " +
@@ -968,6 +969,7 @@ app.post(
         return res.status(401).send("بيانات غير صحيحة");
       }
       // إعادة التوجيه إلى العميل المحلي مع التوكن
+      // استخدام عنوان الخادم المحلي (افتراضياً localhost:3001)
       const redirectUrl = `http://localhost:3001/callback?token=${user.screenToken}`;
       res.redirect(redirectUrl);
     } catch (err) {
@@ -1589,7 +1591,7 @@ app.get("/screens", authenticateToken, (req, res) => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.socket.io; connect-src 'self' http://localhost:3000 ws://localhost:3000 https://cdn.socket.io; img-src 'self' data: https://via.placeholder.com https://ui-avatars.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.socket.io; connect-src 'self' http://localhost:3000 ws://localhost:3000 http://[::1]:3000 ws://[::1]:3000 https://cdn.socket.io; img-src 'self' data: https://via.placeholder.com https://ui-avatars.com;">
   <title>Black Moon - OBS Screens</title>
   <style>
     body { font-family: 'Open Sans', sans-serif; background: #0a0a0a; color: #fff; margin: 0; padding: 30px; }
@@ -1675,7 +1677,7 @@ app.get("/screens/:token/:screenNumber", async (req, res) => {
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.socket.io; connect-src 'self' http://localhost:3000 ws://localhost:3000 https://cdn.socket.io; img-src 'self' data: https://via.placeholder.com https://ui-avatars.com;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.socket.io; connect-src 'self' http://localhost:3000 ws://localhost:3000 http://[::1]:3000 ws://[::1]:3000 https://cdn.socket.io; img-src 'self' data: https://via.placeholder.com https://ui-avatars.com;">
   <title>Screen ${screenNum} - ${user.username}</title>
   <style>
     html,body{ margin:0;padding:0;width:100%;height:100%; background:transparent; overflow:hidden; }
@@ -1691,7 +1693,8 @@ app.get("/screens/:token/:screenNumber", async (req, res) => {
     const USER_TOKEN = '${token}';
     console.log('🎬 Screen ' + SCREEN_NUMBER + ' loaded for user ' + USER_TOKEN);
     
-    const socket = io("http://localhost:${PORT}", { 
+    // استخدام نفس origin الذي تم تحميل الصفحة منه لإنشاء اتصال Socket.IO
+    const socket = io(window.location.origin, { 
       query: { token: USER_TOKEN },
       transports: ['websocket', 'polling']
     });
@@ -1899,6 +1902,6 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, "public", "tik_black", "index.html"));
 });
 
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`🚀 السيرفر يعمل الآن على المنفذ: ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`🚀 السيرفر يعمل الآن على المنفذ: ${PORT} (IPv4 & IPv6)`);
 });
