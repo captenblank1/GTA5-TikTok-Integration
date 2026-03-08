@@ -935,6 +935,52 @@ app.get("/api/me", authenticateToken, (req, res) => {
   });
 });
 
+// إضافة مسار جديد في السيرفر لتسجيل الدخول للعميل
+app.get("/desktop-auth", (req, res) => {
+  // يمكن أن نعرض صفحة تسجيل دخول بسيطة
+  const html = `
+  <!DOCTYPE html>
+  <html>
+  <head>
+    <title>Desktop Client Authentication</title>
+  </head>
+  <body>
+    <h2>تسجيل الدخول لتطبيق سطح المكتب</h2>
+    <form action="/desktop-login" method="POST">
+      <input type="text" name="username" placeholder="اسم المستخدم" required /><br/>
+      <input type="password" name="password" placeholder="كلمة المرور" required /><br/>
+      <button type="submit">دخول</button>
+    </form>
+  </body>
+  </html>
+  `;
+  res.send(html);
+});
+
+app.post(
+  "/desktop-login",
+  express.urlencoded({ extended: true }),
+  async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      const user = await UserModel.findOne({ username });
+      if (!user) {
+        return res.status(401).send("بيانات غير صحيحة");
+      }
+      const valid = await bcrypt.compare(password, user.password);
+      if (!valid) {
+        return res.status(401).send("بيانات غير صحيحة");
+      }
+      // إعادة التوجيه إلى العميل المحلي مع التوكن
+      const redirectUrl = `http://localhost:3001/callback?token=${user.screenToken}`;
+      res.redirect(redirectUrl);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("خطأ داخلي");
+    }
+  },
+);
+
 // ================ مسارات TikTok username ================
 app.post("/api/tiktok-user", authenticateToken, async (req, res) => {
   const { username } = req.body;
