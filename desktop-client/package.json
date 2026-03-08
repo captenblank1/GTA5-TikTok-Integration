@@ -1,0 +1,23 @@
+{
+  "name": "blackmoon-desktop-client",
+  "version": "1.0.0",
+  "description": "عميل سطح مكتب لتنفيذ أوامر الويب هوك المحلية",
+  "main": "client.js",
+  "scripts": {
+    "start": "node client.js"
+  },
+  "dependencies": {
+    "node-fetch": "^2.6.12",
+    "socket.io-client": "^4.7.2"
+  },
+  "devDependencies": {
+    "pkg": "^5.8.1"
+  },
+  "bin": "client.js",
+  "pkg": {
+    "targets": [
+      "node18-win-x64"
+    ],
+    "output": "dist/BlackMoonClient.exe"
+  }
+}

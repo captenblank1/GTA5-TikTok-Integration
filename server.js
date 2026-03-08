@@ -446,10 +446,7 @@ async function runCommandObject(userId, cmdObj, triggerUser = "Unknown") {
     for (let i = 0; i < repeat; i++) {
       if (i > 0 && interval > 0)
         await new Promise((resolve) => setTimeout(resolve, interval));
-      await sendWebhookOrDesktop(userId, webhookUrl, webhookData, 1, 0, 0); // نمرر التكرارات داخل الدالة الجديدة
-      // ملاحظة: تم إزالة التكرار هنا لأن sendWebhookOrDesktop ستتعامل مع التكرار إذا كان localhost،
-      // ولكن بالنسبة للويب هوك العادي فإن sendWebhook لا يتعامل مع التكرار، لذلك سنبقي التكرار في هذه الحلقة.
-      // لكن للتبسيط، يمكننا ترك الحلقة كما هي مع استدعاء sendWebhookOrDesktop مرة واحدة لكل تكرار.
+      await sendWebhookOrDesktop(userId, webhookUrl, webhookData, 1, 0, 0);
     }
 
     if (audio && cmdObj.playSound !== false) {
@@ -563,7 +560,8 @@ async function setupTikTokConnection(userId, username) {
               1,
               parseInt(cmdObj.repeat || 1, 10) || 1,
             );
-            cmdObj.repeat = configuredRepeat * delta;
+            // تعديل: إزالة الضرب في delta
+            cmdObj.repeat = configuredRepeat;
             await runCommandObject(userId, cmdObj, sender);
           }
         }
@@ -588,10 +586,8 @@ async function setupTikTokConnection(userId, username) {
             }
           } else {
             const icObj = { ...ic.toObject() };
-            icObj.repeat = Math.max(
-              1,
-              (icObj.repeat || 1) * Math.min(delta, GIFT_MAX_BURST),
-            );
+            // تعديل: إزالة الضرب في delta
+            icObj.repeat = Math.max(1, icObj.repeat || 1);
             await runCommandObject(userId, icObj, sender);
           }
         }
